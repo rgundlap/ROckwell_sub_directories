@@ -1,0 +1,31 @@
+---------------------HEADER ----------------------
+-- Name                : broker_zone_us_imports_parq.ctl
+-- Purpose             : To load table broker_zone_us_imports_parq in parquet format for raw layer in database ip_ftz_rds_data.db
+-- Author              : gravi2
+-- Creation Date       : 2018-OCT-31
+-- Description         : It will store broker zone us imports only 
+-------------------- HEADER ----------------------
+
+DROP TABLE IF EXISTS ${env}ip_ftz_rds_data.broker_zone_us_imports_tmp PURGE;
+CREATE TABLE IF NOT EXISTS ${env}ip_ftz_rds_data.broker_zone_us_imports_tmp
+    ROW FORMAT DELIMITED
+        FIELDS TERMINATED BY ','
+     STORED AS PARQUET
+        LOCATION '/user/hive/warehouse/rockwell/enterprise/raw/${env}ip_ftz_rds_data.db/broker_zone_us_imports_tmp/'
+    TBLPROPERTIES("SKIP.HEADER.LINE.COUNT"="1")
+AS
+SELECT T1.*, current_timestamp as BICOE_LOAD_DTTM FROM ${env}ip_ftz_rds_data.broker_zone_us_imports T1
+        
+    UNION ALL
+
+    SELECT T2.* from ${env}ip_ftz_rds_data.broker_zone_us_imports_parq T2
+            LEFT OUTER JOIN ${env}ip_ftz_rds_data.broker_zone_us_imports T1  ON T2.exitdocid = T1.exitdocid
+    WHERE T1.exitdocid IS NULL ;
+
+LOAD DATA INPATH '/user/hive/warehouse/rockwell/enterprise/raw/${env}ip_ftz_rds_data.db/broker_zone_us_imports_tmp' 
+OVERWRITE INTO TABLE ${env}ip_ftz_rds_data.broker_zone_us_imports_parq;
+
+
+DROP TABLE IF EXISTS ${env}ip_ftz_rds_data.broker_zone_us_imports_tmp PURGE;
+
+ANALYZE TABLE ${env}ip_ftz_rds_data.broker_zone_us_imports_parq COMPUTE STATISTICS;
